@@ -17,11 +17,14 @@ HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 
+CLIENTCREATESTRUCT MDIClientCreateStruct;
+
 //SDL and GOL objects
 GoL_Renderer renderer;
 Cell_Map cell_Map;
 GameTimer gol_Timer;
 HWND hWnd;
+bool simPause = false;
 
 
 // Forward declarations of functions included in this code module:
@@ -75,7 +78,13 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 		}
 		renderer.Render_Life(cell_Map.Get_Cellmap());
-		cell_Map.Next_Gen();
+
+		if (!simPause){
+		
+			cell_Map.Next_Gen();
+		
+		}
+
 	}
 
 	return (int) msg.wParam;
@@ -126,6 +135,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 
    hWnd = CreateWindow(szWindowClass, szTitle, WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, 0, CW_USEDEFAULT, 0, NULL, NULL, hInstance, NULL);
 
+   //tool_Wnd = CreateWindowEx(WS_EX_TOOLWINDOW, TEXT("Home"),
+	  // TEXT("The Home page"),
+	  // WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
+	  // CW_USEDEFAULT, CW_USEDEFAULT, 700, 400,
+	  // NULL, NULL, hInstance, NULL);
+
    if (!hWnd)
    {
       return FALSE;
@@ -155,6 +170,18 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 	switch (message)
 	{
+	case WM_CREATE:
+		
+
+
+
+
+
+		/*CreateWindowEx(NULL, TEXT("BUTTON"), TEXT("PAUSE"),
+			WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON |WS_TABSTOP,
+			20, 10, 60, 30, hWnd, (HMENU)IDC_PAUSE, GetModuleHandle(NULL), NULL);*/
+
+		break;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
 		wmEvent = HIWORD(wParam);
@@ -167,6 +194,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
 			break;
+		case IDC_PAUSE:
+			if (!simPause){
+				SetDlgItemText(hWnd, IDC_PAUSE, TEXT("START"));
+			}
+			else{
+				SetDlgItemText(hWnd, IDC_PAUSE, TEXT("PAUSE"));
+			}
+			simPause = !simPause;
+			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
@@ -175,6 +211,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		hdc = BeginPaint(hWnd, &ps);
 		// TODO: Add any drawing code here...
 		EndPaint(hWnd, &ps);
+
 		break;
 	case WM_DESTROY:
 		PostQuitMessage(0);

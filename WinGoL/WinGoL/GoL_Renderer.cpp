@@ -54,19 +54,19 @@ void GoL_Renderer::Render_Cell(int x, int y){
 void GoL_Renderer::Render_Life(gol_Map& map){
 	
 	//Clear screen
-	SDL_SetRenderDrawColor(c_Renderer, 0x00, 0x00, 0x00, 0xFF);
+	SDL_SetRenderDrawColor(c_Renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 	SDL_RenderClear(c_Renderer);
 
 	
 	BOOST_FOREACH(gol_Map::value_type cell, map){
 		if (cell.second){
-			SDL_SetRenderDrawColor(c_Renderer, 0xFF, 0x00, 0xFF, 0xFF);
+			SDL_SetRenderDrawColor(c_Renderer, 0x00, 0x00, 0x00, 0xFF);
 			Render_Cell(cell.first.x_Pos, cell.first.y_Pos);
 		}
-		else{
+		/*else{
 			SDL_SetRenderDrawColor(c_Renderer, 0x00, 0xFF, 0x00, 0xFF);
 			Render_Cell(cell.first.x_Pos, cell.first.y_Pos);
-		}
+		}*/
 	}
 
 	SDL_RenderPresent(c_Renderer);
