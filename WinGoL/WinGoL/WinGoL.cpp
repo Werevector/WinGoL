@@ -10,6 +10,11 @@
 #include "L16_FParser.h"
 #include "GameTimer.h"
 
+#include <shobjidl.h>
+#include <windows.h>
+#include <string>
+#include <stdlib.h>
+
 #define MAX_LOADSTRING 100
 
 // Global Variables:
@@ -24,7 +29,9 @@ GoL_Renderer renderer;
 Cell_Map cell_Map;
 GameTimer gol_Timer;
 HWND hWnd;
-bool simPause = false;
+bool simPause = true;
+
+std::string openFilePath();
 
 
 // Forward declarations of functions included in this code module:
@@ -59,11 +66,15 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		return FALSE;
 	}
 
+	std::string patternPath;
+
 	renderer.Init(hWnd);
 
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINGOL));
 
-	L16_Parser::Load_Pattern(cell_Map, "LF106/pulsar.life");
+	patternPath = openFilePath();
+
+	L16_Parser::Load_Pattern(cell_Map, patternPath);
 
 	while (WM_QUIT != msg.message){
 
@@ -177,9 +188,9 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 
-		/*CreateWindowEx(NULL, TEXT("BUTTON"), TEXT("PAUSE"),
+		CreateWindowEx(NULL, TEXT("BUTTON"), TEXT("PAUSE"),
 			WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON |WS_TABSTOP,
-			20, 10, 60, 30, hWnd, (HMENU)IDC_PAUSE, GetModuleHandle(NULL), NULL);*/
+			20, 10, 60, 30, hWnd, (HMENU)IDC_PAUSE, GetModuleHandle(NULL), NULL);
 
 		break;
 	case WM_COMMAND:
@@ -240,4 +251,75 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+std::string openFilePath(){
+
+	std::string pathRes;
+	HRESULT hr = CoInitializeEx(NULL, COINIT_APARTMENTTHREADED |
+		COINIT_DISABLE_OLE1DDE);
+	if (SUCCEEDED(hr))
+	{
+		IFileOpenDialog *pFileOpen;
+
+		// Create the FileOpenDialog object.
+		hr = CoCreateInstance(CLSID_FileOpenDialog, NULL, CLSCTX_ALL,
+			IID_IFileOpenDialog, reinterpret_cast<void**>(&pFileOpen));
+
+		if (SUCCEEDED(hr))
+		{
+			// Show the Open dialog box.
+			hr = pFileOpen->Show(NULL);
+
+			// Get the file name from the dialog box.
+			if (SUCCEEDED(hr))
+			{
+				IShellItem *pItem;
+				hr = pFileOpen->GetResult(&pItem);
+				if (SUCCEEDED(hr))
+				{
+					PWSTR pszFilePath;
+					hr = pItem->GetDisplayName(SIGDN_FILESYSPATH, &pszFilePath);
+
+					// Display the file name to the user.
+					if (SUCCEEDED(hr))
+					{
+						/*std::wstringstream ss;
+						ss << pszFilePath;
+						std::cout << ss.str();*/
+
+						//char buffer[32];
+						//int ret;
+
+						//printf("wchar_t string: %ls \n", pszFilePath);
+
+						//ret = wcstombs_s(buffer, pszFilePath, sizeof(buffer));
+						//if (ret == 32) buffer[31] = '\0';
+						////if (ret) printf("multibyte string: %s \n", buffer);
+						//std::string newRes(buffer);
+
+						//pathRes = newRes;
+
+						//std::wstringstream(pszFilePath) >> pathRes;
+
+						size_t outputSize = wcslen(pszFilePath) + 1;
+						char* outputString = new char[outputSize];
+						size_t charsConverted = 0;
+						const wchar_t * inputW = pszFilePath;
+						wcstombs_s(&charsConverted, outputString, outputSize, inputW, wcslen(pszFilePath));
+
+						std::string newPath(outputString);
+						pathRes = newPath;
+
+						/*MessageBox(NULL, pszFilePath, L"File Path", MB_OK);
+						CoTaskMemFree(pszFilePath);*/
+					}
+					pItem->Release();
+				}
+			}
+			pFileOpen->Release();
+		}
+		CoUninitialize();
+	}
+	return pathRes;
 }
