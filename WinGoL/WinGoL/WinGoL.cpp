@@ -29,7 +29,7 @@ GoL_Renderer renderer;
 Cell_Map cell_Map;
 GameTimer gol_Timer;
 HWND hWnd;
-bool simPause = true;
+bool simPause = false;
 
 std::string openFilePath();
 
@@ -184,14 +184,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_CREATE:
 		
 
-
-
-
-
-		CreateWindowEx(NULL, TEXT("BUTTON"), TEXT("PAUSE"),
-			WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON |WS_TABSTOP,
-			20, 10, 60, 30, hWnd, (HMENU)IDC_PAUSE, GetModuleHandle(NULL), NULL);
-
 		break;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
@@ -284,24 +276,7 @@ std::string openFilePath(){
 					// Display the file name to the user.
 					if (SUCCEEDED(hr))
 					{
-						/*std::wstringstream ss;
-						ss << pszFilePath;
-						std::cout << ss.str();*/
-
-						//char buffer[32];
-						//int ret;
-
-						//printf("wchar_t string: %ls \n", pszFilePath);
-
-						//ret = wcstombs_s(buffer, pszFilePath, sizeof(buffer));
-						//if (ret == 32) buffer[31] = '\0';
-						////if (ret) printf("multibyte string: %s \n", buffer);
-						//std::string newRes(buffer);
-
-						//pathRes = newRes;
-
-						//std::wstringstream(pszFilePath) >> pathRes;
-
+						
 						size_t outputSize = wcslen(pszFilePath) + 1;
 						char* outputString = new char[outputSize];
 						size_t charsConverted = 0;
@@ -311,8 +286,6 @@ std::string openFilePath(){
 						std::string newPath(outputString);
 						pathRes = newPath;
 
-						/*MessageBox(NULL, pszFilePath, L"File Path", MB_OK);
-						CoTaskMemFree(pszFilePath);*/
 					}
 					pItem->Release();
 				}

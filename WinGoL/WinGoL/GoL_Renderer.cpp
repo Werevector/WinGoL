@@ -34,8 +34,8 @@ int GoL_Renderer::Init(HWND hWnd){
 	}
 
 
-	cellRect.h = 3;
-	cellRect.w = 3;
+	cellRect.h = 1;
+	cellRect.w = 1;
 
 	return 1;
 
