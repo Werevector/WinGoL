@@ -14,7 +14,12 @@
 #define IDI_SMALL			108
 #define IDC_WINGOL			109
 
+
 #define IDC_PAUSE			199
+
+#define IDM_NEW				200
+#define IDM_OPEN			201
+#define IDM_SAVE			202
 
 #define IDC_MYICON			2
 #ifndef IDC_STATIC
