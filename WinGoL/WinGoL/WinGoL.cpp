@@ -15,6 +15,9 @@
 #include <windowsx.h>
 #include <string>
 #include <stdlib.h>
+#include <WinUser.h>
+
+#include "Settings.h"
 
 #define MAX_LOADSTRING 100
 
@@ -230,10 +233,39 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDM_NEW:
 			cell_Map.Clear_Map();
 			break;
+		
+		
+
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
+	case WM_KEYDOWN:
+		//W = 0x57
+		if (wParam == 0x57){ cameraY-=5; }
+
+		//S = 0x53
+		if (wParam == 0x53){ cameraY+=5; }
+
+		//A = 0x41
+		if (wParam == 0x41){ cameraX-=5; }
+
+		//D = 0x44
+		if (wParam == 0x44){ cameraX+=5; }
+
+		break;
+
+	case WM_MOUSEWHEEL:
+
+		if (wParam > 0){
+			cameraZ += (GET_WHEEL_DELTA_WPARAM(wParam)/120);
+		}
+		else{
+			if (cameraZ > 1){ cameraZ -= (GET_WHEEL_DELTA_WPARAM(wParam) / 120); }
+		}
+
+		break;
+
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 		// TODO: Add any drawing code here...

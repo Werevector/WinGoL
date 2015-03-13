@@ -3,6 +3,7 @@
 #include "SDL.h"
 #include <iostream>
 #include "Cell_Map.h"
+#include "Settings.h"
 
 
 
