@@ -43,8 +43,8 @@ int GoL_Renderer::Init(HWND hWnd){
 
 void GoL_Renderer::Render_Cell(int x, int y){
 	
-	cellRect.x = (x * cellRect.w) + 500;
-	cellRect.y = (y * cellRect.h) + 400;
+	cellRect.x = (x * cellRect.w);
+	cellRect.y = (y * cellRect.h);
 
 	
 	SDL_RenderFillRect(c_Renderer, &cellRect);

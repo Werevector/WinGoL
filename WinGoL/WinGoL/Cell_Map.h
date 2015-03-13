@@ -17,6 +17,8 @@ public:
 	void Add_Cell(gol_Map&, int, int);
 	void Next_Gen();
 	gol_Map& Get_Cellmap();
+
+	void Clear_Map();
 	
 
 private:

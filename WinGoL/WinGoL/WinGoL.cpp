@@ -12,6 +12,7 @@
 
 #include <shobjidl.h>
 #include <windows.h>
+#include <windowsx.h>
 #include <string>
 #include <stdlib.h>
 
@@ -24,11 +25,13 @@ TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 
 CLIENTCREATESTRUCT MDIClientCreateStruct;
 
+std::string patternPath;
+
 //SDL and GOL objects
 GoL_Renderer renderer;
 Cell_Map cell_Map;
 GameTimer gol_Timer;
-HWND hWnd, tWnd;
+HWND hWnd, tWnd, sdl_Wnd;
 bool simPause = false;
 
 HIMAGELIST g_hImageList = NULL;
@@ -64,12 +67,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	//Innitiate SDL
 	SDL_InitSubSystem(SDL_INIT_VIDEO);
 	
-	INITCOMMONCONTROLSEX icex;
-
-	// Ensure that the common control DLL is loaded. 
-	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
-	icex.dwICC = ICC_LISTVIEW_CLASSES;
-	InitCommonControlsEx(&icex);
+	
 
 	// Perform application initialization:
 	if (!InitInstance (hInstance, nCmdShow))
@@ -81,15 +79,21 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 	
 
-	renderer.Init(hWnd);
+	renderer.Init(sdl_Wnd);
 
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINGOL));
 
-	//patternPath = openFilePath();
+	
+	
+	INITCOMMONCONTROLSEX icex;
 
-	L16_Parser::Load_Pattern(cell_Map, patternPath);
+	// Ensure that the common control DLL is loaded. 
+	icex.dwSize = sizeof(INITCOMMONCONTROLSEX);
+	icex.dwICC = ICC_LISTVIEW_CLASSES;
+	InitCommonControlsEx(&icex);
 
 	tWnd = CreateSimpleToolbar(hWnd, hInstance);
+
 
 	while (WM_QUIT != msg.message){
 
@@ -103,7 +107,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 			}
 
 		}
-		//renderer.Render_Life(cell_Map.Get_Cellmap());
+		renderer.Render_Life(cell_Map.Get_Cellmap());
 
 		if (!simPause){
 		
@@ -118,31 +122,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 
 
-//
-//  FUNCTION: MyRegisterClass()
-//
-//  PURPOSE: Registers the window class.
-//
-ATOM MyRegisterClass(HINSTANCE hInstance)
-{
-	WNDCLASSEX wcex;
 
-	wcex.cbSize = sizeof(WNDCLASSEX);
-
-	wcex.style			= CS_HREDRAW | CS_VREDRAW;
-	wcex.lpfnWndProc	= WndProc;
-	wcex.cbClsExtra		= 0;
-	wcex.cbWndExtra		= 0;
-	wcex.hInstance		= hInstance;
-	wcex.hIcon			= LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINGOL));
-	wcex.hCursor		= LoadCursor(NULL, IDC_ARROW);
-	wcex.hbrBackground	= (HBRUSH)(COLOR_WINDOW+1);
-	wcex.lpszMenuName	= MAKEINTRESOURCE(IDC_WINGOL);
-	wcex.lpszClassName	= szWindowClass;
-	wcex.hIconSm		= LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
-
-	return RegisterClassEx(&wcex);
-}
 
 //
 //   FUNCTION: InitInstance(HINSTANCE, int)
@@ -194,10 +174,37 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	HDC hdc;
 
+	RECT rects;
+	int lheight;
+	int lwidth;
+
+	GetClientRect(hWnd, &rects);
+
+	lwidth = rects.right;
+	lheight = rects.bottom;
+
+
 	switch (message)
 	{
 	case WM_CREATE:
 		
+		sdl_Wnd = CreateWindowEx(WS_EX_CLIENTEDGE,
+			TEXT("LeftWnd"),
+			TEXT(""),
+			WS_CHILD | WS_VISIBLE | WS_BORDER,
+			rects.left,
+			rects.top+40,
+			lwidth,
+			lheight,
+			hWnd,
+			NULL,
+			GetModuleHandle(NULL),
+			NULL);
+		if (NULL != sdl_Wnd)
+		{
+			ShowWindow(sdl_Wnd, SW_SHOW);
+			UpdateWindow(sdl_Wnd);
+		}
 
 		break;
 	case WM_COMMAND:
@@ -213,17 +220,71 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			DestroyWindow(hWnd);
 			break;
 		case IDC_PAUSE:
-			if (!simPause){
-				SetDlgItemText(hWnd, IDC_PAUSE, TEXT("START"));
-			}
-			else{
-				SetDlgItemText(hWnd, IDC_PAUSE, TEXT("PAUSE"));
-			}
 			simPause = !simPause;
+			break;
+		case IDM_OPEN:
+			cell_Map.Clear_Map();
+			patternPath = openFilePath();
+			L16_Parser::Load_Pattern(cell_Map, patternPath);
+			break;
+		case IDM_NEW:
+			cell_Map.Clear_Map();
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
+		break;
+	case WM_PAINT:
+		hdc = BeginPaint(hWnd, &ps);
+		// TODO: Add any drawing code here...
+		EndPaint(hWnd, &ps);
+
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
+LRESULT CALLBACK SDLProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	int wmId, wmEvent;
+	PAINTSTRUCT ps;
+	HDC hdc;
+
+	//Mouse Coords
+	int Mx = 0;
+	int My = 0;
+
+	switch (message)
+	{
+	case WM_CREATE:
+
+
+		break;
+	case WM_COMMAND:
+		wmId = LOWORD(wParam);
+		wmEvent = HIWORD(wParam);
+		// Parse the menu selections:
+		switch (wmId)
+		{
+		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+		break;
+	case WM_LBUTTONDOWN:
+
+		Mx = GET_X_LPARAM(lParam);
+		My = GET_Y_LPARAM(lParam);
+
+		cell_Map.Add_Cell(Mx,My);
+
 		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
@@ -258,6 +319,52 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	}
 	return (INT_PTR)FALSE;
+}
+
+//
+//  FUNCTION: MyRegisterClass()
+//
+//  PURPOSE: Registers the window class.
+//
+ATOM MyRegisterClass(HINSTANCE hInstance)
+{
+	ATOM RetVAL = 0;
+	WNDCLASSEX wcex;
+
+	wcex.cbSize = sizeof(WNDCLASSEX);
+
+	wcex.style = CS_HREDRAW | CS_VREDRAW;
+	wcex.lpfnWndProc = WndProc;
+	wcex.cbClsExtra = 0;
+	wcex.cbWndExtra = 0;
+	wcex.hInstance = hInstance;
+	wcex.hIcon = LoadIcon(hInstance, MAKEINTRESOURCE(IDI_WINGOL));
+	wcex.hCursor = LoadCursor(NULL, IDC_ARROW);
+	wcex.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1);
+	wcex.lpszMenuName = MAKEINTRESOURCE(IDC_WINGOL);
+	wcex.lpszClassName = szWindowClass;
+	wcex.hIconSm = LoadIcon(wcex.hInstance, MAKEINTRESOURCE(IDI_SMALL));
+
+	// Register the Main Window class with the OS
+	if (!RegisterClassEx(&wcex))
+	{
+		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"),
+			MB_ICONEXCLAMATION | MB_OK);
+		RetVAL = 0;
+	}
+
+	wcex.lpfnWndProc = SDLProc;
+	wcex.lpszClassName = TEXT("LeftWnd");
+
+	// Register the SDL Window class with the OS
+	if (!RegisterClassEx(&wcex))
+	{
+		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"),
+			MB_ICONEXCLAMATION | MB_OK);
+		RetVAL = 0;
+	}
+
+	return RetVAL = 0;
 }
 
 std::string openFilePath(){

@@ -80,6 +80,10 @@ void Cell_Map::Next_Gen(){
 
 }
 
+void Cell_Map::Clear_Map(){
+	cell_Collection.clear();
+}
+
 gol_Map& Cell_Map::Get_Cellmap(){
 	return cell_Collection;
 }
