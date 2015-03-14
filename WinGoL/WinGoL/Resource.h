@@ -17,6 +17,8 @@
 #define IDM_NEW				150
 #define IDM_OPEN			151
 #define IDM_SAVE			152
+#define IDM_DEBG			153
+#define IDM_PAUSE			154
 
 #define IDC_PAUSE			199
 

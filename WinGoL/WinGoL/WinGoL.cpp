@@ -34,7 +34,7 @@ std::string patternPath;
 GoL_Renderer renderer;
 Cell_Map cell_Map;
 GameTimer gol_Timer;
-HWND hWnd, tWnd, sdl_Wnd;
+HWND hWnd, tWnd, sdl_Wnd, debgWnd;
 bool simPause = false;
 
 HIMAGELIST g_hImageList = NULL;
@@ -80,8 +80,6 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 	std::string patternPath;
 
-	
-
 	renderer.Init(sdl_Wnd);
 
 	hAccelTable = LoadAccelerators(hInstance, MAKEINTRESOURCE(IDC_WINGOL));
@@ -117,6 +115,10 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 			cell_Map.Next_Gen();
 		
 		}
+		if (GetAsyncKeyState(0x57)){ cameraY += 5 * (cameraZ + 1); };
+		if (GetAsyncKeyState(0x53)){ cameraY -= 5 * (cameraZ + 1); };
+		if (GetAsyncKeyState(0x41)){ cameraX += 5 * (cameraZ + 1); };
+		if (GetAsyncKeyState(0x44)){ cameraX -= 5 * (cameraZ + 1); };
 
 	}
 
@@ -137,6 +139,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 //        In this function, we save the instance handle in a global variable and
 //        create and display the main program window.
 //
+
 BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 {
 
@@ -186,17 +189,19 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	lwidth = rects.right;
 	lheight = rects.bottom;
 
+	sdlw_Width = lwidth;
+	sdlw_Height = lheight;
 
 	switch (message)
 	{
 	case WM_CREATE:
 		
 		sdl_Wnd = CreateWindowEx(WS_EX_CLIENTEDGE,
-			TEXT("LeftWnd"),
+			TEXT("sdlWnd"),
 			TEXT(""),
 			WS_CHILD | WS_VISIBLE | WS_BORDER,
 			rects.left,
-			rects.top+40,
+			rects.top+20,
 			lwidth,
 			lheight,
 			hWnd,
@@ -207,6 +212,25 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			ShowWindow(sdl_Wnd, SW_SHOW);
 			UpdateWindow(sdl_Wnd);
+		}
+
+		debgWnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
+			TEXT("debgWnd"),
+			TEXT("Debug"),
+			WS_BORDER | WS_SYSMENU | WS_DLGFRAME | WS_THICKFRAME,
+			90,
+			90,
+			150,
+			300,
+			0,
+			NULL,
+			GetModuleHandle(NULL),
+			NULL);
+		
+		if (NULL != debgWnd)
+		{
+			//ShowWindow(debgWnd, SW_SHOW);
+			UpdateWindow(debgWnd);
 		}
 
 		break;
@@ -229,29 +253,46 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			cell_Map.Clear_Map();
 			patternPath = openFilePath();
 			L16_Parser::Load_Pattern(cell_Map, patternPath);
+
+			cameraX = sdlw_Width / 2;
+			cameraY = sdlw_Height / 2;
+
+			break;
+		case IDM_PAUSE:
+			simPause = !simPause;
+			break;
+		case IDM_DEBG:
+
+			if (dbg_Toggle){
+				
+				/*if (NULL != sdl_Wnd)
+				{
+					ShowWindow(sdl_Wnd, SW_SHOW);
+					UpdateWindow(sdl_Wnd);
+				}*/
+				ShowWindow(debgWnd, SW_SHOW);
+				dbg_Toggle = !dbg_Toggle;
+			}
+			else{
+				ShowWindow(debgWnd, SW_HIDE);
+				dbg_Toggle = !dbg_Toggle;
+			}
+
 			break;
 		case IDM_NEW:
 			cell_Map.Clear_Map();
 			break;
 		
-		
-
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
 	case WM_KEYDOWN:
-		//W = 0x57
-		if (wParam == 0x57){ cameraY-=5; }
+		//E = 0x45
+		if (wParam == 0x45){ simPause = !simPause; }
 
-		//S = 0x53
-		if (wParam == 0x53){ cameraY+=5; }
-
-		//A = 0x41
-		if (wParam == 0x41){ cameraX-=5; }
-
-		//D = 0x44
-		if (wParam == 0x44){ cameraX+=5; }
+		//Q = 0x51
+		if (wParam == 0x51){ dead_Colour_ON = !dead_Colour_ON; }
 
 		break;
 
@@ -261,7 +302,11 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			cameraZ += (GET_WHEEL_DELTA_WPARAM(wParam)/120);
 		}
 		else{
-			if (cameraZ > 1){ cameraZ -= (GET_WHEEL_DELTA_WPARAM(wParam) / 120); }
+			cameraZ -= (GET_WHEEL_DELTA_WPARAM(wParam) / 120);
+		}
+
+		if (cameraZ < 0){
+			cameraZ = 0;
 		}
 
 		break;
@@ -286,6 +331,7 @@ LRESULT CALLBACK SDLProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	int wmId, wmEvent;
 	PAINTSTRUCT ps;
 	HDC hdc;
+
 
 	//Mouse Coords
 	int Mx = 0;
@@ -315,12 +361,81 @@ LRESULT CALLBACK SDLProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		Mx = GET_X_LPARAM(lParam);
 		My = GET_Y_LPARAM(lParam);
 
+		Mx = Mx - cameraX;
+		My = My - cameraY;
+
+		Mx = Mx / (cameraZ + 1);
+		My = My / (cameraZ + 1);
+
 		cell_Map.Add_Cell(Mx,My);
 
 		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
 		// TODO: Add any drawing code here...
+		EndPaint(hWnd, &ps);
+		break;
+	case WM_DESTROY:
+		PostQuitMessage(0);
+		break;
+	default:
+		return DefWindowProc(hWnd, message, wParam, lParam);
+	}
+	return 0;
+}
+
+LRESULT CALLBACK debgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	int wmId, wmEvent;
+	PAINTSTRUCT ps;
+	HDC hdc;
+
+	POINT p;
+	GetCursorPos(&p);
+	ScreenToClient(sdl_Wnd, &p);
+
+	RECT rc;
+	GetClientRect(debgWnd, &rc);
+
+	std::wstring MousePosition_Wnd = TEXT("MousePosition_Wnd:: ") + std::to_wstring(cameraZ); // or wstring if you have unicode set
+	std::wstring strOut = TEXT("Hello World!"); // or wstring if you have unicode set
+	//std::wstring strOut = TEXT("Hello World!"); // or wstring if you have unicode set
+	//std::wstring strOut = TEXT("Hello World!"); // or wstring if you have unicode set
+	//std::wstring strOut = TEXT("Hello World!"); // or wstring if you have unicode set
+
+	switch (message)
+	{
+	case WM_CREATE:
+
+		break;
+	case WM_COMMAND:
+		wmId = LOWORD(wParam);
+		wmEvent = HIWORD(wParam);
+		// Parse the menu selections:
+		switch (wmId)
+		{
+		case IDM_EXIT:
+			DestroyWindow(hWnd);
+			break;
+		default:
+			return DefWindowProc(hWnd, message, wParam, lParam);
+		}
+		break;
+	case WM_PAINT:
+		
+		
+
+		hdc = BeginPaint(hWnd, &ps);
+		
+		
+
+		SelectObject(hdc, GetStockObject(DEFAULT_GUI_FONT));
+		SetBkMode(hdc, TRANSPARENT);
+		SetTextColor(hdc, RGB(255, 0, 0));
+
+		
+		DrawText(hdc, MousePosition_Wnd.c_str(), MousePosition_Wnd.length(), &rc, DT_SINGLELINE);
+		
 		EndPaint(hWnd, &ps);
 
 		break;
@@ -386,7 +501,21 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	}
 
 	wcex.lpfnWndProc = SDLProc;
-	wcex.lpszClassName = TEXT("LeftWnd");
+	wcex.lpszClassName = TEXT("sdlWnd");
+	wcex.hCursor = LoadCursor(NULL, IDC_CROSS);
+
+	// Register the SDL Window class with the OS
+	if (!RegisterClassEx(&wcex))
+	{
+		MessageBox(NULL, TEXT("Window Registration Failed!"), TEXT("Error!"),
+			MB_ICONEXCLAMATION | MB_OK);
+		RetVAL = 0;
+	}
+
+	wcex.style = CS_HREDRAW | CS_VREDRAW | CS_NOCLOSE;
+	wcex.lpfnWndProc = debgProc;
+	wcex.lpszClassName = TEXT("debgWnd");
+	wcex.lpszMenuName = NULL;
 
 	// Register the SDL Window class with the OS
 	if (!RegisterClassEx(&wcex))
@@ -459,14 +588,14 @@ HWND CreateSimpleToolbar(HWND hWndParent, HINSTANCE hInstance)
 
 	// Declare and initialize local constants.
 	const int ImageListID = 0;
-	const int numButtons = 3;
+	const int numButtons = 5;
 	const int bitmapSize = 16;
 
 	const DWORD buttonStyles = BTNS_AUTOSIZE;
 
 	// Create the toolbar.
 	hWndToolbar = CreateWindowEx(0, TOOLBARCLASSNAME, NULL,
-		WS_CHILD | TBSTYLE_WRAPABLE, 0, 0, 0, 0,
+		WS_CHILD | TBSTYLE_WRAPABLE | TBSTYLE_FLAT | TBSTYLE_LIST, 0, 0, 0, 0,
 		hWndParent, NULL,hInstance, NULL);
 
 	if (hWndToolbar == NULL)
@@ -494,7 +623,9 @@ HWND CreateSimpleToolbar(HWND hWndParent, HINSTANCE hInstance)
 	{
 		{ MAKELONG(STD_FILENEW, ImageListID), IDM_NEW, TBSTATE_ENABLED, buttonStyles, { 0 }, 0, (INT_PTR)L"New" },
 		{ MAKELONG(STD_FILEOPEN, ImageListID), IDM_OPEN, TBSTATE_ENABLED, buttonStyles, { 0 }, 0, (INT_PTR)L"Open" },
-		{ MAKELONG(STD_FILESAVE, ImageListID), IDM_SAVE, 0, buttonStyles, { 0 }, 0, (INT_PTR)L"Save" }
+		{ MAKELONG(STD_FILESAVE, ImageListID), IDM_SAVE, 0, buttonStyles, { 0 }, 0, (INT_PTR)L"Save" },
+		{ MAKELONG(STD_REPLACE, ImageListID), IDM_DEBG, TBSTATE_ENABLED, buttonStyles, { 0 }, 0, (INT_PTR)L"Debug" },
+		{ MAKELONG(STD_OUTPUT_HANDLE, ImageListID), IDM_PAUSE, TBSTATE_ENABLED, buttonStyles, { 0 }, 0, (INT_PTR)L"Pause" }
 	};
 
 	// Add buttons.

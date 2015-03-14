@@ -11,8 +11,9 @@ GoL_Renderer::~GoL_Renderer(){
 
 GoL_Renderer::GoL_Renderer(){
 
-	SCREEN_HEIGHT = 800;
-	SCREEN_WIDTH = 800;
+	//not currently used bcs: Win32
+	/*SCREEN_HEIGHT = 800;
+	SCREEN_WIDTH = 800;*/
 
 }
 
@@ -33,6 +34,9 @@ int GoL_Renderer::Init(HWND hWnd){
 
 	}
 
+	cameraX = sdlw_Width / 2;
+	cameraY = sdlw_Height / 2;
+
 
 	cellRect.h = 1;
 	cellRect.w = 1;
@@ -43,11 +47,11 @@ int GoL_Renderer::Init(HWND hWnd){
 
 void GoL_Renderer::Render_Cell(int x, int y){
 	
-	cellRect.x = (x * cellRect.w)+cameraX;
-	cellRect.y = (y * cellRect.h)+cameraY;
+	cellRect.x = (x * cellRect.w) + cameraX;
+	cellRect.y = (y * cellRect.h) + cameraY;
 
-	cellRect.h = 1+cameraZ;
-	cellRect.w = 1+cameraZ;
+	cellRect.h = 1 + cameraZ;
+	cellRect.w = 1 + cameraZ;
 	
 	SDL_RenderFillRect(c_Renderer, &cellRect);
 
@@ -65,7 +69,7 @@ void GoL_Renderer::Render_Life(gol_Map& map){
 			SDL_SetRenderDrawColor(c_Renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 			Render_Cell(cell.first.x_Pos, cell.first.y_Pos);
 		}
-		else{
+		else if(dead_Colour_ON){
 			SDL_SetRenderDrawColor(c_Renderer, 0xFF, 0x00, 0xFF, 0xFF);
 			Render_Cell(cell.first.x_Pos, cell.first.y_Pos);
 		}
