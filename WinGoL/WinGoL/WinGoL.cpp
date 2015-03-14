@@ -93,7 +93,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	icex.dwICC = ICC_LISTVIEW_CLASSES;
 	InitCommonControlsEx(&icex);
 
-	tWnd = CreateSimpleToolbar(hWnd, hInstance);
+	
 
 
 	while (WM_QUIT != msg.message){
@@ -115,10 +115,10 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 			cell_Map.Next_Gen();
 		
 		}
-		if (GetAsyncKeyState(0x57)){ cameraY += 5 * (cameraZ + 1); };
-		if (GetAsyncKeyState(0x53)){ cameraY -= 5 * (cameraZ + 1); };
-		if (GetAsyncKeyState(0x41)){ cameraX += 5 * (cameraZ + 1); };
-		if (GetAsyncKeyState(0x44)){ cameraX -= 5 * (cameraZ + 1); };
+		if (GetAsyncKeyState(0x57)){ cameraY += 5 + (cameraZ + 1); };
+		if (GetAsyncKeyState(0x53)){ cameraY -= 5 + (cameraZ + 1); };
+		if (GetAsyncKeyState(0x41)){ cameraX += 5 + (cameraZ + 1); };
+		if (GetAsyncKeyState(0x44)){ cameraX -= 5 + (cameraZ + 1); };
 
 	}
 
@@ -180,15 +180,15 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	PAINTSTRUCT ps;
 	HDC hdc;
 
-	RECT rects;
+	RECT rects, toolRkt;
 	int lheight;
 	int lwidth;
 
 	GetClientRect(hWnd, &rects);
-
+	
+	
 	lwidth = rects.right;
 	lheight = rects.bottom;
-
 	sdlw_Width = lwidth;
 	sdlw_Height = lheight;
 
@@ -196,12 +196,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 		
+		tWnd = CreateSimpleToolbar(hWnd, hInst);
+
+		GetClientRect(tWnd, &toolRkt);
+
 		sdl_Wnd = CreateWindowEx(WS_EX_CLIENTEDGE,
 			TEXT("sdlWnd"),
 			TEXT(""),
 			WS_CHILD | WS_VISIBLE | WS_BORDER,
 			rects.left,
-			rects.top+20,
+			rects.top+toolRkt.bottom,
 			lwidth,
 			lheight,
 			hWnd,
