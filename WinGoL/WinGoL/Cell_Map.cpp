@@ -52,8 +52,10 @@ int Cell_Map::Count_Neighbors(int x, int y){
 	int result = 0;
 	Cell testCell;
 	for (int i = 0; i < relative_a.size(); i++){
+		
 		testCell.x_Pos = x + relative_a[i][0];
 		testCell.y_Pos = y + relative_a[i][1];
+		
 		gol_Map::iterator iterator = cell_Collection.find(testCell);
 		if (iterator != cell_Collection.end() && iterator->second == true){
 			result++;

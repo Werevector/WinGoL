@@ -16,6 +16,7 @@
 #include <string>
 #include <stdlib.h>
 #include <WinUser.h>
+#include <chrono>
 
 #include "Settings.h"
 
@@ -30,6 +31,10 @@ CLIENTCREATESTRUCT MDIClientCreateStruct;
 
 std::string patternPath;
 
+
+//Debug Struct (Settings.h)
+struct Debg debg;
+
 //SDL and GOL objects
 GoL_Renderer renderer;
 Cell_Map cell_Map;
@@ -42,6 +47,7 @@ HIMAGELIST g_hImageList = NULL;
 HWND CreateSimpleToolbar(HWND hWndParent, HINSTANCE hInstance);
 
 std::string openFilePath();
+int saveFilePath();
 
 
 // Forward declarations of functions included in this code module:
@@ -95,7 +101,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 	
 
-
+	//Simulation Loop
 	while (WM_QUIT != msg.message){
 
 		// Main message loop:
@@ -108,17 +114,30 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 			}
 
 		}
+
+		//Render cellField
 		renderer.Render_Life(cell_Map.Get_Cellmap());
 
 		if (!simPause){
 		
+			//Calculate next generation (chrono is fps calculation)
+			auto t_start = std::chrono::high_resolution_clock::now();
 			cell_Map.Next_Gen();
+			auto t_end = std::chrono::high_resolution_clock::now();
+
+			debg.Gen_time = std::chrono::duration<double, std::milli>(t_end - t_start).count();
 		
 		}
-		if (GetAsyncKeyState(0x57)){ cameraY += 5 + (cameraZ + 1); };
-		if (GetAsyncKeyState(0x53)){ cameraY -= 5 + (cameraZ + 1); };
-		if (GetAsyncKeyState(0x41)){ cameraX += 5 + (cameraZ + 1); };
-		if (GetAsyncKeyState(0x44)){ cameraX -= 5 + (cameraZ + 1); };
+
+		//Keystate checking
+		if (GetAsyncKeyState(0x57)){ cameraY += cameraV + (cameraZ + 1); };
+		if (GetAsyncKeyState(0x53)){ cameraY -= cameraV + (cameraZ + 1); };
+		if (GetAsyncKeyState(0x41)){ cameraX += cameraV + (cameraZ + 1); };
+		if (GetAsyncKeyState(0x44)){ cameraX -= cameraV + (cameraZ + 1); };
+
+		//Debug wnd invalidaton
+		InvalidateRect(debgWnd, NULL, TRUE);
+		UpdateWindow(debgWnd);
 
 	}
 
@@ -218,12 +237,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			UpdateWindow(sdl_Wnd);
 		}
 
-		debgWnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST,
+		debgWnd = CreateWindowEx(WS_EX_TOOLWINDOW | WS_EX_TOPMOST | WS_EX_NOACTIVATE,
 			TEXT("debgWnd"),
 			TEXT("Debug"),
 			WS_BORDER | WS_SYSMENU | WS_DLGFRAME | WS_THICKFRAME,
-			90,
-			90,
+			0,
+			0,
 			150,
 			300,
 			0,
@@ -233,7 +252,6 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		
 		if (NULL != debgWnd)
 		{
-			//ShowWindow(debgWnd, SW_SHOW);
 			UpdateWindow(debgWnd);
 		}
 
@@ -249,6 +267,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case IDM_EXIT:
 			DestroyWindow(hWnd);
+			DestroyWindow(debgWnd);
 			break;
 		case IDC_PAUSE:
 			simPause = !simPause;
@@ -268,12 +287,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case IDM_DEBG:
 
 			if (dbg_Toggle){
-				
-				/*if (NULL != sdl_Wnd)
-				{
-					ShowWindow(sdl_Wnd, SW_SHOW);
-					UpdateWindow(sdl_Wnd);
-				}*/
+
 				ShowWindow(debgWnd, SW_SHOW);
 				dbg_Toggle = !dbg_Toggle;
 			}
@@ -285,6 +299,8 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case IDM_NEW:
 			cell_Map.Clear_Map();
+			cameraX = sdlw_Width / 2;
+			cameraY = sdlw_Height / 2;
 			break;
 		
 		default:
@@ -313,6 +329,10 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			cameraZ = 0;
 		}
 
+		if (cameraZ > 50){
+			cameraZ = 50;
+		}
+
 		break;
 
 	case WM_PAINT:
@@ -338,8 +358,8 @@ LRESULT CALLBACK SDLProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 
 	//Mouse Coords
-	int Mx = 0;
-	int My = 0;
+	double Mx = 0;
+	double My = 0;
 
 	switch (message)
 	{
@@ -360,17 +380,35 @@ LRESULT CALLBACK SDLProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
 		break;
+	case WM_MOUSEMOVE:
+
+		debg.mousePos.x = GET_X_LPARAM(lParam);
+		debg.mousePos.y = GET_Y_LPARAM(lParam);
+		
+		break;
 	case WM_LBUTTONDOWN:
 
+		//Get cursor position in SDL window
 		Mx = GET_X_LPARAM(lParam);
 		My = GET_Y_LPARAM(lParam);
 
+		//Translate to Field coordinates
 		Mx = Mx - cameraX;
 		My = My - cameraY;
 
+		//calculate in zoom factor
 		Mx = Mx / (cameraZ + 1);
 		My = My / (cameraZ + 1);
 
+		//Round down to nearest integer
+		Mx = floor(Mx);
+		My = floor(My);
+
+		//put values in Debug struct
+		debg.lastCell.x = Mx;
+		debg.lastCell.y = My;
+
+		//Add new cell to map
 		cell_Map.Add_Cell(Mx,My);
 
 		break;
@@ -401,11 +439,8 @@ LRESULT CALLBACK debgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	RECT rc;
 	GetClientRect(debgWnd, &rc);
 
-	std::wstring MousePosition_Wnd = TEXT("MousePosition_Wnd:: ") + std::to_wstring(cameraZ); // or wstring if you have unicode set
-	std::wstring strOut = TEXT("Hello World!"); // or wstring if you have unicode set
-	//std::wstring strOut = TEXT("Hello World!"); // or wstring if you have unicode set
-	//std::wstring strOut = TEXT("Hello World!"); // or wstring if you have unicode set
-	//std::wstring strOut = TEXT("Hello World!"); // or wstring if you have unicode set
+	std::wstring wString;
+	
 
 	switch (message)
 	{
@@ -431,15 +466,36 @@ LRESULT CALLBACK debgProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		hdc = BeginPaint(hWnd, &ps);
 		
-		
-
 		SelectObject(hdc, GetStockObject(DEFAULT_GUI_FONT));
 		SetBkMode(hdc, TRANSPARENT);
-		SetTextColor(hdc, RGB(255, 0, 0));
+		SetTextColor(hdc, RGB(0, 0, 0));
 
+		wString = TEXT("Mouse_x: ") + std::to_wstring(debg.mousePos.x);
+		TextOut(hdc, 0, 0, wString.c_str(), wString.length());
+		wString = TEXT("Mouse_y: ") + std::to_wstring(debg.mousePos.y);
+		TextOut(hdc, 0, 15, wString.c_str(), wString.length());
 		
-		DrawText(hdc, MousePosition_Wnd.c_str(), MousePosition_Wnd.length(), &rc, DT_SINGLELINE);
+		wString = TEXT("///Last Cellpos///");
+		TextOut(hdc, 0, 40, wString.c_str(), wString.length());
+
+		wString = TEXT("cell x: ") + std::to_wstring(debg.lastCell.x);
+		TextOut(hdc, 0, 55, wString.c_str(), wString.length());
 		
+		wString = TEXT("cell y: ") + std::to_wstring(debg.lastCell.y);
+		TextOut(hdc, 0, 65, wString.c_str(), wString.length());
+
+		wString = TEXT("Gen_Cal_milli: ") + std::to_wstring((int)debg.Gen_time);
+		TextOut(hdc, 0, 90, wString.c_str(), wString.length());
+
+		wString = TEXT("CameraX: ") + std::to_wstring(cameraX);
+		TextOut(hdc, 0, 125, wString.c_str(), wString.length());
+	
+		wString = TEXT("CameraY: ") + std::to_wstring(cameraY);
+		TextOut(hdc, 0, 140, wString.c_str(), wString.length());
+
+		wString = TEXT("CameraZ: ") + std::to_wstring(cameraZ);
+		TextOut(hdc, 0, 155, wString.c_str(), wString.length());
+
 		EndPaint(hWnd, &ps);
 
 		break;
@@ -582,6 +638,10 @@ std::string openFilePath(){
 		CoUninitialize();
 	}
 	return pathRes;
+}
+
+int saveFilePath(){
+	//TODO:: Save As Dialog
 }
 
 

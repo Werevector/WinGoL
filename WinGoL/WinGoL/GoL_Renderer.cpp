@@ -47,8 +47,8 @@ int GoL_Renderer::Init(HWND hWnd){
 
 void GoL_Renderer::Render_Cell(int x, int y){
 	
-	cellRect.x = (x * cellRect.w) + cameraX;
-	cellRect.y = (y * cellRect.h) + cameraY;
+	cellRect.x = ((x * cellRect.w) + cameraX);
+	cellRect.y = ((y * cellRect.h) + cameraY);
 
 	cellRect.h = 1 + cameraZ;
 	cellRect.w = 1 + cameraZ;
