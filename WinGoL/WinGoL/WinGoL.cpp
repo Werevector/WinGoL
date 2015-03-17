@@ -135,6 +135,9 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		if (GetAsyncKeyState(0x41)){ cameraX += cameraV + (cameraZ + 1); };
 		if (GetAsyncKeyState(0x44)){ cameraX -= cameraV + (cameraZ + 1); };
 
+		if (GetAsyncKeyState(VK_DOWN)){ cameraZ--; if (cameraZ < 0) cameraZ = 0; };
+		if (GetAsyncKeyState(VK_UP)){ cameraZ++; if (cameraZ >50) cameraZ = 50; };
+
 		//Debug wnd invalidaton
 		InvalidateRect(debgWnd, NULL, TRUE);
 		UpdateWindow(debgWnd);
